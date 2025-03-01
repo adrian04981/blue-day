@@ -10,6 +10,8 @@ const loading = ref(false);
 const error = ref(null);
 const locationUpdateInterval = ref(null);
 const isTracking = ref(false);
+const permissionGranted = ref(false);
+const showThanks = ref(false);
 
 // Guardar sesión en localStorage
 const saveSession = () => {
@@ -42,41 +44,92 @@ const updateConnectionState = () => {
 };
 
 const updateLocation = () => {
-  if (!sessionId || !isTracking.value) return;
+  if (!sessionId) return;
   
-  loading.value = true;
-  error.value = null;
+  // Verificar si la sesión está activa antes de actualizar
+  const sessionRef = dbRef(db, `sessions/${sessionId}`);
+  onValue(sessionRef, (snapshot) => {
+    const session = snapshot.val();
+    if (!session || !session.active) {
+      stopTracking();
+      error.value = 'Esta sesión ha sido desactivada';
+      return;
+    }
 
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const locationData = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          timestamp: Date.now()
-        };
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const locationData = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            timestamp: Date.now()
+          };
 
-        const locationRef = dbRef(db, `sessions/${sessionId}/locations/${Date.now()}`);
-        set(locationRef, locationData)
-          .then(() => {
-            loading.value = false;
-          })
-          .catch(err => {
-            error.value = 'Error al guardar ubicación';
-            loading.value = false;
-          });
-      },
-      (err) => {
-        error.value = `Error: ${err.message}`;
-        loading.value = false;
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 5000,
-        maximumAge: 0
-      }
-    );
+          const locationRef = dbRef(db, `sessions/${sessionId}/locations/${Date.now()}`);
+          set(locationRef, locationData)
+            .then(() => {
+              loading.value = false;
+            })
+            .catch(err => {
+              console.error('Error guardando ubicación:', err);
+            });
+        },
+        (err) => {
+          console.error('Error de geolocalización:', err);
+        }
+      );
+    }
+  });
+};
+
+const stopTracking = () => {
+  isTracking.value = false;
+  if (locationUpdateInterval.value) {
+    clearInterval(locationUpdateInterval.value);
   }
+  localStorage.removeItem('tracking_session');
+};
+
+// Solicitar permiso de ubicación
+const requestLocationPermission = () => {
+  loading.value = true;
+  
+  if (navigator.geolocation) {
+    navigator.permissions.query({ name: 'geolocation' }).then((result) => {
+      if (result.state === 'granted') {
+        permissionGranted.value = true;
+        showThankYouAndStart();
+      } else if (result.state === 'prompt') {
+        // Solicitar permiso
+        navigator.geolocation.getCurrentPosition(
+          () => {
+            permissionGranted.value = true;
+            showThankYouAndStart();
+          },
+          (err) => {
+            error.value = `Error: ${err.message}`;
+            loading.value = false;
+          }
+        );
+      } else {
+        error.value = 'Acceso a ubicación denegado';
+        loading.value = false;
+      }
+    });
+  } else {
+    error.value = "Geolocalización no disponible en este navegador";
+    loading.value = false;
+  }
+};
+
+const showThankYouAndStart = () => {
+  loading.value = false;
+  showThanks.value = true;
+  // Iniciar tracking después de 2 segundos
+  setTimeout(() => {
+    showThanks.value = false;
+    startTracking();
+  }, 2000);
 };
 
 // Iniciar tracking
@@ -108,8 +161,8 @@ onMounted(() => {
       return;
     }
     
-    if (!isTracking.value) {
-      startTracking();
+    if (!isTracking.value && !loading.value) {
+      requestLocationPermission();
     }
   });
 
@@ -133,18 +186,31 @@ onUnmounted(() => {
 
 <template>
   <div class="tracker-container">
-    <div v-if="loading" class="status">
-      Actualizando ubicación...
+    <div v-if="loading" class="loading-screen">
+      <div class="loader"></div>
+      <h2>Solicitando acceso a la ubicación</h2>
+      <p>Por favor, acepta compartir tu ubicación para continuar</p>
     </div>
     
-    <div v-if="error" class="error">
-      {{ error }}
+    <div v-else-if="showThanks" class="thanks-screen">
+      <div class="check-mark">✓</div>
+      <h2>¡Gracias!</h2>
+      <p>Tu ubicación está siendo rastreada</p>
     </div>
+    
+    <template v-else>
+      <div v-if="error" class="error">
+        {{ error }}
+      </div>
 
-    <div v-if="!error && isTracking" class="tracking-active">
-      Rastreo activo y persistente
-      <div class="session-info">ID Sesión: {{ sessionId }}</div>
-    </div>
+      <div v-if="!error && isTracking" class="tracking-active">
+        Rastreo activo y persistente
+        <div class="session-info">ID Sesión: {{ sessionId }}</div>
+        <div v-if="error" class="session-error">
+          {{ error }}
+        </div>
+      </div>
+    </template>
   </div>
 </template>
 
@@ -153,28 +219,112 @@ onUnmounted(() => {
   max-width: 600px;
   margin: 2rem auto;
   padding: 20px;
-  text-align: center;
+  background-color: var(--bg-secondary);
+  border-radius: 12px;
+  color: var(--text-primary);
 }
 
-.status, .error, .tracking-active {
+.status {
+  background-color: var(--card-bg);
+  color: var(--text-secondary);
   padding: 1rem;
   margin: 1rem 0;
-  border-radius: 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
 }
 
 .error {
-  background-color: #ffebee;
-  color: #c62828;
+  background-color: var(--bg-primary);
+  color: var(--error);
+  padding: 1rem;
+  margin: 1rem 0;
+  border-radius: 8px;
+  border: 1px solid var(--error);
 }
 
 .tracking-active {
-  background-color: #e8f5e9;
-  color: #2e7d32;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  color: var(--text-primary);
+  padding: 1.5rem;
+  margin: 1rem 0;
+  border-radius: 8px;
+  text-align: center;
+  animation: pulse 2s infinite;
 }
 
 .session-info {
   font-size: 0.8em;
-  margin-top: 0.5em;
-  opacity: 0.7;
+  margin-top: 1em;
+  color: var(--text-primary);
+  opacity: 0.8;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(0, 255, 213, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(0, 255, 213, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 255, 213, 0);
+  }
+}
+
+.loading-screen, .thanks-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  text-align: center;
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 2rem;
+}
+
+.loader {
+  width: 50px;
+  height: 50px;
+  border: 4px solid var(--accent-primary);
+  border-top: 4px solid transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+.check-mark {
+  font-size: 4rem;
+  color: var(--success);
+  animation: scale-in 0.3s ease-out;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes scale-in {
+  0% { transform: scale(0); }
+  100% { transform: scale(1); }
+}
+
+.loading-screen h2, .thanks-screen h2 {
+  color: var(--text-primary);
+  margin: 1rem 0;
+}
+
+.loading-screen p, .thanks-screen p {
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.session-error {
+  margin-top: 1rem;
+  padding: 0.5rem;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--error);
+  border-radius: 4px;
+  color: var(--error);
 }
 </style>

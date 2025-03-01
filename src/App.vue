@@ -3,8 +3,37 @@
 </script>
 
 <template>
-  <router-view></router-view>
+  <div class="app-container">
+    <router-view></router-view>
+  </div>
 </template>
+
+<style>
+@import './assets/styles/variables.css';
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  min-height: 100vh;
+}
+
+.app-container {
+  min-height: 100vh;
+  padding: 20px;
+}
+
+h1, h2, h3 {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+button {
+  font-family: inherit;
+}
+</style>
 
 <style scoped>
 .logo {
