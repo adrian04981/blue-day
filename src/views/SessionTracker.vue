@@ -8,28 +8,13 @@ const route = useRoute();
 const sessionId = route.params.sessionId;
 const loading = ref(false);
 const error = ref(null);
-const locationUpdateInterval = ref(null);
 const isTracking = ref(false);
 const permissionGranted = ref(false);
 const showThanks = ref(false);
 const backgroundBlur = ref(true);
 
 const asciiArt = 
-`⠄⠄⠄⠄⢀⣠⣶⣶⣶⣤⡀⠄⠄⠄⠄⠄⠄⠄⠄⠄⢀⣠⣤⣄⡀⠄⠄⠄⠄⠄
-⠄⠄⠄⢠⣾⡟⠁⠄⠈⢻⣿⡀⠄⠄⠄⠄⠄⠄⠄⠄⣼⣿⡿⠋⠉⠻⣷⠄⠄⠄⠄
-⠄⠄⠄⢸⣿⣷⣄⣀⣠⣿⣿⡇⠄⠄⠄⠄⠄⠄⠄⢰⣿⣿⣇⠄⠄⢠⣿⡇⠄⠄⠄
-⠄⠄⠄⢸⣿⣿⣿⣿⣿⣿⣿⣦⣤⣤⣤⣤⣤⣤⣤⣼⣿⣿⣿⣿⣿⣿⣿⡇⠄⠄⠄
-⠄⠄⠄⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣇⠄⠄⠄
-⠄⢀⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡆⠄⠄
-⠄⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡄⠄
-⠄⣿⣿⣿⣿⣿⡏⣍⡻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠿⢛⣩⡍⣿⣿⣿⣷⠄
-⠄⣿⣿⣿⣿⣿⣇⢿⠻⠮⠭⠭⠭⢭⣭⣭⣭⣛⣭⣭⠶⠿⠛⣽⢱⣿⣿⣿⣿⠄
-⠄⣿⣿⣿⣿⣿⣿⣦⢱⡀⠄⢰⣿⡇⠄⠄⠄⠄⠄⠄⠄⢀⣾⢇⣿⣿⣿⣿⡿⠄
-⠄⠻⢿⣿⣿⣿⢛⣭⣥⣭⣤⣼⣿⡇⠤⠤⠤⣤⣤⣤⡤⢞⣥⣿⣿⣿⣿⣿⠃⠄
-⠄⠄⠄⣛⣛⠃⣿⣿⣿⣿⣿⣿⣿⢇⡙⠻⢿⣶⣶⣶⣾⣿⣿⣿⠿⢟⣛⠃⠄⠄
-⠄⠄⣼⣿⣿⡘⣿⣿⣿⣿⣿⣿⡏⣼⣿⣿⣶⣬⣭⣭⣭⣭⣭⣴⣾⣿⣿⡄⠄⠄
-⠄⣼⣿⣿⣿⣷⣜⣛⣛⣛⣛⣛⣀⡛⠿⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡄⠄
-⢰⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣶⣦⣭⣙⣛⣛⣛⣩⣭⣭⣿⣿⣿⣷⡀`;
+``;
 
 // Guardar sesión en localStorage
 const saveSession = () => {
@@ -64,47 +49,37 @@ const updateConnectionState = () => {
 const updateLocation = () => {
   if (!sessionId) return;
   
-  // Verificar si la sesión está activa antes de actualizar
-  const sessionRef = dbRef(db, `sessions/${sessionId}`);
-  onValue(sessionRef, (snapshot) => {
-    const session = snapshot.val();
-    if (!session || !session.active) {
-      stopTracking();
-      error.value = 'Esta sesión ha sido desactivada';
-      return;
-    }
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const locationData = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          timestamp: Date.now()
+        };
 
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const locationData = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            timestamp: Date.now()
-          };
-
-          const locationRef = dbRef(db, `sessions/${sessionId}/locations/${Date.now()}`);
-          set(locationRef, locationData)
-            .then(() => {
-              loading.value = false;
-            })
-            .catch(err => {
-              console.error('Error guardando ubicación:', err);
-            });
-        },
-        (err) => {
-          console.error('Error de geolocalización:', err);
-        }
-      );
-    }
-  });
+        const locationRef = dbRef(db, `sessions/${sessionId}/locations/${Date.now()}`);
+        set(locationRef, locationData)
+          .then(() => {
+            loading.value = false;
+            // Después de guardar la ubicación, mostramos el agradecimiento y redirigimos
+            showThankYouAndStart();
+          })
+          .catch(err => {
+            console.error('Error guardando ubicación:', err);
+            error.value = 'Error al guardar la ubicación';
+          });
+      },
+      (err) => {
+        console.error('Error de geolocalización:', err);
+        error.value = 'Error al obtener la ubicación';
+      }
+    );
+  }
 };
 
 const stopTracking = () => {
   isTracking.value = false;
-  if (locationUpdateInterval.value) {
-    clearInterval(locationUpdateInterval.value);
-  }
   localStorage.removeItem('tracking_session');
 };
 
@@ -116,13 +91,13 @@ const requestLocationPermission = () => {
     navigator.permissions.query({ name: 'geolocation' }).then((result) => {
       if (result.state === 'granted') {
         permissionGranted.value = true;
-        showThankYouAndStart();
+        updateLocation(); // Solo llamamos a updateLocation
       } else if (result.state === 'prompt') {
         // Solicitar permiso
         navigator.geolocation.getCurrentPosition(
           () => {
             permissionGranted.value = true;
-            showThankYouAndStart();
+            updateLocation(); // Solo llamamos a updateLocation
           },
           (err) => {
             error.value = `Error: ${err.message}`;
@@ -151,22 +126,13 @@ const showThankYouAndStart = () => {
   }, 2000);
 };
 
-// Iniciar tracking
-const startTracking = () => {
-  isTracking.value = true;
-  saveSession();
-  updateConnectionState();
-  updateLocation();
-  locationUpdateInterval.value = setInterval(updateLocation, 10000);
-};
-
 // Restaurar sesión
 const restoreSession = () => {
   const savedSession = localStorage.getItem('tracking_session');
   if (savedSession) {
     const { sessionId: savedSessionId } = JSON.parse(savedSession);
     if (savedSessionId === sessionId) {
-      startTracking();
+      updateLocation();
     }
   }
 };
@@ -197,9 +163,6 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  if (locationUpdateInterval.value) {
-    clearInterval(locationUpdateInterval.value);
-  }
 });
 </script>
 
