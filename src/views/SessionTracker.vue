@@ -13,6 +13,22 @@ const isTracking = ref(false);
 const permissionGranted = ref(false);
 const showThanks = ref(false);
 
+const asciiArt = `⠄⠄⠄⠄⢀⣠⣶⣶⣶⣤⡀⠄⠄⠄⠄⠄⠄⠄⠄⠄⢀⣠⣤⣄⡀⠄⠄⠄⠄⠄
+⠄⠄⠄⢠⣾⡟⠁⠄⠈⢻⣿⡀⠄⠄⠄⠄⠄⠄⠄⣼⣿⡿⠋⠉⠻⣷⠄⠄⠄⠄
+⠄⠄⠄⢸⣿⣷⣄⣀⣠⣿⣿⡇⠄⠄⠄⠄⠄⠄⢰⣿⣿⣇⠄⠄⢠⣿⡇⠄⠄⠄
+⠄⠄⠄⢸⣿⣿⣿⣿⣿⣿⣿⣦⣤⣤⣤⣤⣤⣤⣼⣿⣿⣿⣿⣿⣿⣿⡇⠄⠄⠄
+⠄⠄⠄⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣇⠄⠄⠄
+⠄⢀⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡆⠄⠄
+⠄⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡄⠄
+⠄⣿⣿⣿⣿⣿⡏⣍⡻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠿⢛⣩⡍⣿⣿⣿⣷⠄
+⠄⣿⣿⣿⣿⣿⣇⢿⠻⠮⠭⠭⠭⢭⣭⣭⣭⣛⣭⣭⠶⠿⠛⣽⢱⣿⣿⣿⣿⠄
+⠄⣿⣿⣿⣿⣿⣿⣦⢱⡀⠄⢰⣿⡇⠄⠄⠄⠄⠄⠄⠄⢀⣾⢇⣿⣿⣿⣿⡿⠄
+⠄⠻⢿⣿⣿⣿⢛⣭⣥⣭⣤⣼⣿⡇⠤⠤⠤⣤⣤⣤⡤⢞⣥⣿⣿⣿⣿⣿⠃⠄
+⠄⠄⠄⣛⣛⠃⣿⣿⣿⣿⣿⣿⣿⢇⡙⠻⢿⣶⣶⣶⣾⣿⣿⣿⠿⢟⣛⠃⠄⠄
+⠄⠄⣼⣿⣿⡘⣿⣿⣿⣿⣿⣿⡏⣼⣿⣿⣶⣬⣭⣭⣭⣭⣭⣴⣾⣿⣿⡄⠄⠄
+⠄⣼⣿⣿⣿⣷⣜⣛⣛⣛⣛⣛⣀⡛⠿⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡄⠄
+⢰⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣶⣦⣭⣙⣛⣛⣛⣩⣭⣭⣿⣿⣿⣷⡀`;
+
 // Guardar sesión en localStorage
 const saveSession = () => {
   localStorage.setItem('tracking_session', JSON.stringify({
@@ -195,7 +211,6 @@ onUnmounted(() => {
     <div v-else-if="showThanks" class="thanks-screen">
       <div class="check-mark">✓</div>
       <h2>¡Gracias!</h2>
-      <p>Tu ubicación está siendo rastreada</p>
     </div>
     
     <template v-else>
@@ -204,8 +219,7 @@ onUnmounted(() => {
       </div>
 
       <div v-if="!error && isTracking" class="tracking-active">
-        Rastreo activo y persistente
-        <div class="session-info">ID Sesión: {{ sessionId }}</div>
+        <pre class="ascii-art">{{ asciiArt }}</pre>
         <div v-if="error" class="session-error">
           {{ error }}
         </div>
@@ -243,19 +257,20 @@ onUnmounted(() => {
 }
 
 .tracking-active {
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  background: var(--bg-secondary);
   color: var(--text-primary);
   padding: 1.5rem;
   margin: 1rem 0;
   border-radius: 8px;
   text-align: center;
-  animation: pulse 2s infinite;
+  border: 1px solid var(--accent-primary);
+  box-shadow: 0 0 15px rgba(0, 255, 213, 0.2);
 }
 
 .session-info {
   font-size: 0.8em;
   margin-top: 1em;
-  color: var(--text-primary);
+  color: var(--text-secondary);
   opacity: 0.8;
 }
 
@@ -326,5 +341,17 @@ onUnmounted(() => {
   border: 1px solid var(--error);
   border-radius: 4px;
   color: var(--error);
+}
+
+.ascii-art {
+  font-family: monospace;
+  white-space: pre;
+  line-height: 1;
+  font-size: 10px;
+  color: var(--accent-primary);
+  text-shadow: 0 0 5px var(--accent-secondary);
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
 }
 </style>
