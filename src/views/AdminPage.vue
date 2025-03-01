@@ -35,7 +35,10 @@ const deactivateSession = async (sessionId) => {
 };
 
 const viewSessionDetails = (session) => {
-  selectedSession.value = session;
+  selectedSession.value = {
+    ...session,
+    link: `${window.location.origin}/session/${session.id}`
+  };
   // Suscribirse a actualizaciones en tiempo real de las ubicaciones
   const locationsRef = dbRef(db, `sessions/${session.id}/locations`);
   onValue(locationsRef, (snapshot) => {
@@ -116,6 +119,12 @@ onMounted(() => {
       <h2>Detalles de Sesión</h2>
       <div class="session-info">
         <h3>Estado: {{ selectedSession.active ? 'Activa' : 'Desactivada' }}</h3>
+        <div class="link-container">
+          <h4>Link de Sesión:</h4>
+          <div class="link-box">
+            {{ selectedSession.link }}
+          </div>
+        </div>
         <div class="locations-list">
           <h4>Ubicaciones</h4>
           <div v-for="location in selectedSession.locations" :key="location.timestamp" class="location-item">
