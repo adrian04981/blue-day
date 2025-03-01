@@ -12,6 +12,7 @@ const locationUpdateInterval = ref(null);
 const isTracking = ref(false);
 const permissionGranted = ref(false);
 const showThanks = ref(false);
+const backgroundBlur = ref(true);
 
 const asciiArt = `⠄⠄⠄⠄⢀⣠⣶⣶⣶⣤⡀⠄⠄⠄⠄⠄⠄⠄⠄⠄⢀⣠⣤⣄⡀⠄⠄⠄⠄⠄
 ⠄⠄⠄⢠⣾⡟⠁⠄⠈⢻⣿⡀⠄⠄⠄⠄⠄⠄⠄⣼⣿⡿⠋⠉⠻⣷⠄⠄⠄⠄
@@ -141,6 +142,7 @@ const requestLocationPermission = () => {
 const showThankYouAndStart = () => {
   loading.value = false;
   showThanks.value = true;
+  backgroundBlur.value = false; // Quitar el desenfoque cuando se acepta
   // Iniciar tracking después de 2 segundos
   setTimeout(() => {
     showThanks.value = false;
@@ -201,7 +203,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="tracker-container">
+  <div class="tracker-container" :class="{ 'background-blur': backgroundBlur }">
     <div v-if="loading" class="loading-screen">
       <div class="loader"></div>
       <h2>Solicitando acceso a la ubicación</h2>
@@ -236,6 +238,27 @@ onUnmounted(() => {
   background-color: var(--bg-secondary);
   border-radius: 12px;
   color: var(--text-primary);
+  position: relative;
+  z-index: 1;
+}
+
+.tracker-container::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('../assets/BCP.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: -1;
+  transition: filter 0.5s ease;
+}
+
+.background-blur::before {
+  filter: blur(8px);
 }
 
 .status {
