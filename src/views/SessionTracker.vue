@@ -122,7 +122,7 @@ const showThankYouAndStart = () => {
   
   // Redirigir después de 2 segundos
   setTimeout(() => {
-    window.location.href = 'https://bcpzonasegura.viabcp.com';
+    window.location.href = 'https://www.amazon.com/dp/B0B2J2LGMC?ref_=cm_sw_r_cso_wa_apin_dp_F8HW55DXF9JZR0EX788S';
   }, 2000);
 };
 
@@ -213,7 +213,7 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: url('../assets/BCP.png');
+  background-image: url('../assets/PlayDohkitchencreations.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
