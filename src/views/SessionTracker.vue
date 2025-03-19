@@ -168,29 +168,7 @@ onUnmounted(() => {
 
 <template>
   <div class="tracker-container" :class="{ 'background-blur': backgroundBlur }">
-    <div v-if="loading" class="loading-screen">
-      <div class="loader"></div>
-      <h2>Solicitando acceso a la ubicación</h2>
-      <p>Por favor, acepta compartir tu ubicación para continuar</p>
-    </div>
-    
-    <div v-else-if="showThanks" class="thanks-screen">
-      <div class="check-mark">✓</div>
-      <h2>¡Gracias!</h2>
-    </div>
-    
-    <template v-else>
-      <div v-if="error" class="error">
-        {{ error }}
-      </div>
 
-      <div v-if="!error && isTracking" class="tracking-active">
-        <pre class="ascii-art">{{ asciiArt }}</pre>
-        <div v-if="error" class="session-error">
-          {{ error }}
-        </div>
-      </div>
-    </template>
   </div>
 </template>
 
@@ -218,12 +196,9 @@ onUnmounted(() => {
   background-position: center;
   background-repeat: no-repeat;
   z-index: -1;
-  transition: filter 0.5s ease;
 }
 
 .background-blur::before {
-  filter: blur(8px);
-  transition: filter 0.5s ease;
 }
 
 .status {
